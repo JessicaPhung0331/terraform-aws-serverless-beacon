@@ -15,8 +15,11 @@ resource "aws_dynamodb_table" "datasets" {
   }
 
   global_secondary_index {
-    hash_key = "assemblyId"
     name     = "assembly_index"
+    key_schema {
+      attribute_name = "assemblyId"
+      key_type       = "HASH"
+    }
     non_key_attributes = [
       "id",
       "vcfLocations",
