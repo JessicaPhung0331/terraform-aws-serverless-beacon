@@ -74,7 +74,7 @@ Install system-wide dependencies
 # Install development essentials
 sudo yum update
 sudo yum upgrade
-sudo yum install -y docker git openssl-devel libcurl-devel wget bzip2-devel xz-devel libffi-devel zlib-devel autoconf intltool 
+sudo yum install -y docker git openssl-devel libcurl-devel wget bzip2-devel xz-devel libffi-devel zlib-devel autoconf intltool g++ maven
 ```
 
 To properly install Docker in Amazon Linux 2023, please follow the instructions outlined [here](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-docker.html).
