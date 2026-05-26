@@ -101,7 +101,7 @@ def authenticate_analytics(event, context):
     authorizer = event["requestContext"]["authorizer"]
     groups = authorizer["claims"]["cognito:groups"].split(",")
 
-    if not "record-access-user-group" in groups:
+    if not "sbeacon-record-access-user-group" in groups:
         raise AuthError(
             error_code="Unauthorised",
             error_message="User does not have access",

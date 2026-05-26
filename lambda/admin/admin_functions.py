@@ -105,21 +105,21 @@ def update_user_groups(event, context):
     removed_groups = []
 
     if body_dict["groups"]["admin"]:
-        chosen_groups.append("admin-group")
+        chosen_groups.append("sbeacon-admin-group")
     else:
-        removed_groups.append("admin-group")
+        removed_groups.append("sbeacon-admin-group")
     if body_dict["groups"]["record"]:
-        chosen_groups.append("record-access-user-group")
+        chosen_groups.append("sbeacon-record-access-user-group")
     else:
-        removed_groups.append("record-access-user-group")
+        removed_groups.append("sbeacon-record-access-user-group")
     if body_dict["groups"]["count"]:
-        chosen_groups.append("count-access-user-group")
+        chosen_groups.append("sbeacon-count-access-user-group")
     else:
-        removed_groups.append("count-access-user-group")
+        removed_groups.append("sbeacon-count-access-user-group")
     if body_dict["groups"]["boolean"]:
-        chosen_groups.append("boolean-access-user-group")
+        chosen_groups.append("sbeacon-boolean-access-user-group")
     else:
-        removed_groups.append("boolean-access-user-group")
+        removed_groups.append("sbeacon-boolean-access-user-group")
 
     username = get_username_by_email(email)
     for group_name in chosen_groups:

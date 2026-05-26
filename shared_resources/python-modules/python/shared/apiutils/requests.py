@@ -281,7 +281,8 @@ def parse_request(event) -> Tuple[RequestParams, str]:
         )
         groups = groups.split(",")
         authorized = (
-            f"{request_params.query.requested_granularity}-access-user-group" in groups
+            f"sbeacon-{request_params.query.requested_granularity}-access-user-group"
+            in groups
         )
 
         # return unauthorized status
@@ -289,7 +290,7 @@ def parse_request(event) -> Tuple[RequestParams, str]:
             return (
                 None,
                 {
-                    "anauthorized_access": f"User does not belong to {request_params.query.requested_granularity}-access-user-group"
+                    "unauthorized_access": f"User does not belong to sbeacon-{request_params.query.requested_granularity}-access-user-group"
                 },
                 400,
             )

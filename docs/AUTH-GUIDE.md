@@ -63,4 +63,4 @@ Use either `admin_login_command` or `guest_login_command` to retrieve the **IdTo
 
 ## How API security works
 
-There are three groups of users `record-access-user-group`, `count-access-user-group` and `boolean-access-user-group`. Admin user belons to all three groups while guest has only **counts** and **boolean** access. Adding new users must be done using the Cognito User Pool as an administrator. Alternatively, infrastructure can be modified to support alternative authentication flows.
+There are three groups of users `sbeacon-record-access-user-group`, `sbeacon-count-access-user-group` and `sbeacon-boolean-access-user-group`. Admin user belons to all three groups while guest has only **counts** and **boolean** access. Adding new users must be done using the Cognito User Pool as an administrator. Alternatively, infrastructure can be modified to support alternative authentication flows.
