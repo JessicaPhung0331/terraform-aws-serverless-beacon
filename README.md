@@ -12,6 +12,7 @@
 - [Serverless Beacon](#serverless-beacon)
 - [Why serverless?](#why-serverless)
 - [Introduction to sBeacon](#introduction-to-sbeacon)
+- [Minimum Resource Requirements](#minimum-resource-requirements)
 - [Installation](#installation)
    * [Option 1: Setting up the development environment on Amazon Linux](#option-1-setting-up-the-development-environment-on-amazon-linux)
    * [Option 2: Using the docker image](#option-2-using-the-docker-image)
@@ -43,6 +44,19 @@ also means setup is very fast.
 ## Introduction to sBeacon
 sBeacon implements Beacon v2 protocol according to the
 [ga4gh specification](https://github.com/ga4gh-beacon/specification). sBeacon can be used as a beacon network participant. Please refer to [https://docs.genomebeacons.org/networks/](https://docs.genomebeacons.org/networks/).
+
+<!-- TOC --><a name="minimum-resource-requirements"></a>
+## Minimum Resource Requirements
+
+The following minimum specifications are recommended for the machine used to deploy sBeacon:
+
+| Resource | Minimum | Recommended |
+|----------|---------|-------------|
+| CPU | 2 vCPU | 2+ vCPU |
+| RAM | 4 GB | 8 GB |
+| Disk | 8 GB | 12 GB |
+
+> **Note:** The full build and deployment process consumes approximately 3 GB of disk space.
 
 <!-- TOC --><a name="installation"></a>
 ## Installation
