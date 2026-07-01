@@ -17,6 +17,7 @@ INDEXER_LAMBDA = os.environ["INDEXER_LAMBDA"]
 
 # uncomment below for debugging
 # os.environ['LD_DEBUG'] = 'all'
+s3 = boto3.client("s3")
 sns = boto3.client("sns")
 aws_lambda = boto3.client("lambda")
 
@@ -132,38 +133,40 @@ def create_dataset(attributes, vcf_chromosome_maps):
 
 def submit_dataset(body_dict):
     global pending, completed
-    summarise = False
+    pending = []
+    completed = []
 
-    if len(vcf_locations := set(body_dict.get("vcfLocations", []))) > 0:
-        summarise = True
-
-    errored, errors, vcf_chromosome_maps = get_vcf_chromosome_maps(vcf_locations)
-    if errored:
-        return bundle_response(
-            400, build_bad_request(code=400, message="\n".join(errors))
-        )
-    print("Validated the VCF files")
-
-    create_dataset(body_dict, vcf_chromosome_maps)
-
-    return bundle_response(200, {"Completed": completed, "Running": pending})
+    return bundle_response(
+        200,
+        {
+            "message": "Received dataset submission request",
+            "s3Uri": body_dict.get("s3_uri"),
+        },
+    )
 
 
-def validate_request(parameters):
-    # load validator
-    new_schema = "./schemas/submit-dataset-schema-new.json"
-    schema_dir = os.path.dirname(os.path.abspath(new_schema))
-    new_schema = json.load(open(new_schema))
-    resolveNew = RefResolver(base_uri="file://" + schema_dir + "/", referrer=new_schema)
-    validator = Draft202012Validator(new_schema, resolver=resolveNew)
-    errors = []
+def validate_columns(raw_content):
+    return True
 
-    for error in sorted(validator.iter_errors(parameters), key=lambda e: e.path):
-        error_message = f"{error.message} "
-        for part in list(error.path):
-            error_message += f"/{part}"
-        errors.append(error_message)
-    return errors
+
+def parse_file(s3_bucket, s3_key):
+    raw_content = ""
+
+    with sopen(f"s3://{s3_bucket}/{s3_key}", "r") as f:
+        raw_content = f.read()
+
+    print(raw_content[:500])
+
+
+def check_file_exists(s3_bucket, s3_key):
+    try:
+        s3.head_object(Bucket=s3_bucket, Key=s3_key)
+        print("File found successfully")
+
+        return True
+    except s3.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] in {"404", "NoSuchKey"}:
+            return False
 
 
 def route(event):
@@ -180,20 +183,26 @@ def route(event):
     try:
         body_dict = json.loads(event_body)
 
-        if body_dict.get("s3Payload"):
-            print("Using s3 payload instead of POST body")
+        if s3_bucket := body_dict.get("s3_bucket"):
+            print("Received S3 bucket")
 
-            with sopen(body_dict.get("s3Payload"), "r") as payload:
-                body_dict = json.loads(payload.read())
+        if s3_key := body_dict.get("s3_key"):
+            print("Received S3 key")
     except ValueError:
         return bundle_response(
             400, {"message": "Error parsing request body, Expected JSON."}
         )
+    
+    # Validate file exists on S3
+    if not check_file_exists(s3_bucket, s3_key):
+        return bundle_response(
+            400, {"message": "File does not exist on S3. Check your bucket and/or key."}
+        )
+    
+    # Validate File Structure (Correct Columns)
+    parse_file(s3_bucket, s3_key)
 
-    if validation_errors := validate_request(body_dict):
-        print(", ".join(validation_errors))
-        return bundle_response(400, {"message": validation_errors})
-    print("Validated the payload")
+    # Determine which file is being submitted
 
     result = submit_dataset(body_dict)
     clear_tmp()
