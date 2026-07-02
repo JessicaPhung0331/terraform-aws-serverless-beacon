@@ -139,8 +139,7 @@ def submit_dataset(body_dict):
     return bundle_response(
         200,
         {
-            "message": "Received dataset submission request",
-            "s3Uri": body_dict.get("s3_uri"),
+            "message": "Received dataset submission request"
         },
     )
 
@@ -149,13 +148,40 @@ def validate_columns(raw_content):
     return True
 
 
+def parse(raw_input, delimiter="", comment=""):
+    lines = raw_input.split('\n')
+    keys = []
+    extracted = []
+
+    for line in lines:
+        if line.startswith(comment):
+            continue
+
+        cols = line.split(delimiter)
+
+        if len(keys) == 0:
+            keys = cols
+        else:
+            extracted.append(dict(zip(keys, cols)))
+
+    return [keys, extracted]
+
+
 def parse_file(s3_bucket, s3_key):
-    raw_content = ""
+    with sopen(f"s3://{s3_bucket}/{s3_key}", "rb") as f:
+        if (s3_key.endswith(".txt")):
+            extracted = parse(f.read().decode("utf-8"), delimiter="\t", comment="#")
 
-    with sopen(f"s3://{s3_bucket}/{s3_key}", "r") as f:
-        raw_content = f.read()
+        elif (s3_key.endswith(".csv")):
+            extracted = parse(f.read().decode("utf-8"), delimiter=",")
 
-    print(raw_content[:500])
+        else:
+            print("Unsupported file type. Only .txt or .csv files are supported. Ensure your file has the correct format.")
+            return
+        
+    print(extracted)
+
+    return extracted
 
 
 def check_file_exists(s3_bucket, s3_key):
@@ -200,11 +226,16 @@ def route(event):
         )
     
     # Validate File Structure (Correct Columns)
-    parse_file(s3_bucket, s3_key)
+    # call func
 
-    # Determine which file is being submitted
+    if not (extracted_file := parse_file(s3_bucket, s3_key)):
+        return bundle_response(
+            400, {"message": "Error while parsing file. Check that columns are consistent."}
+        )
 
-    result = submit_dataset(body_dict)
+    # TODO Determine which file is being submitted
+
+    result = submit_dataset(extracted_file)
     clear_tmp()
     return result
 
