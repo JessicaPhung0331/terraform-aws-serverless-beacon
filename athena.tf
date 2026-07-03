@@ -626,6 +626,66 @@ resource "aws_glue_catalog_table" "sbeacon-analyses" {
   }
 }
 
+
+# 
+# SNPs metadata
+#
+resource "aws_glue_catalog_table" "sbeacon-snps" {
+  name          = "sbeacon_snps"
+  database_name = aws_glue_catalog_database.metadata-database.name
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    EXTERNAL       = "TRUE"
+    "orc.compress" = "SNAPPY"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.metadata-bucket.bucket}/snps"
+    input_format  = "org.apache.hadoop.hive.ql.io.orc.OrcInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat"
+
+
+    ser_de_info {
+      name                  = "ORC"
+      serialization_library = "org.apache.hadoop.hive.ql.io.orc.OrcSerde"
+
+      parameters = {
+        "serialization.format"      = 1,
+        "orc.column.index.access"   = "FALSE"
+        "hive.orc.use-column-names" = "TRUE"
+      }
+    }
+
+    columns {
+      name = "id"
+      type = "string"
+    }
+
+    columns {
+      name = "chromosome"
+      type = "string"
+    }
+
+    columns {
+      name = "coordinate"
+      type = "string"
+    }
+
+    columns {
+      name = "allelea_top_base"
+      type = "string"
+    }
+
+    columns {
+      name = "alleleb_top_base"
+      type = "string"
+    }
+  }
+}
+
+
 # 
 # Ontology terms index
 # aws cloudformation is used because of terraform bug - https://github.com/hashicorp/terraform-provider-aws/issues/26686

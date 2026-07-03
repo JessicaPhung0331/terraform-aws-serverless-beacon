@@ -77,6 +77,7 @@ locals {
     ATHENA_TERMS_INDEX_TABLE       = aws_cloudformation_stack.sbeacon_terms_index_stack.parameters.TableName
     ATHENA_TERMS_CACHE_TABLE       = aws_glue_catalog_table.sbeacon-terms-cache.name
     ATHENA_RELATIONS_TABLE         = aws_glue_catalog_table.sbeacon-relations.name
+    ATHENA_SNPS_TABLE              = aws_glue_catalog_table.sbeacon-snps.name
   }
   # dynamodb variables
   dynamodb_variables = {

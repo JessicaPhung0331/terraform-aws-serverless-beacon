@@ -219,6 +219,10 @@ class AthenaEnvironment:
         return os.environ["ATHENA_ANALYSES_CACHE_TABLE"]
 
     @property
+    def ATHENA_SNPS_TABLE(self):
+        return os.environ["ATHENA_SNPS_TABLE"]
+
+    @property
     def ATHENA_TERMS_TABLE(self):
         return os.environ["ATHENA_TERMS_TABLE"]
 
