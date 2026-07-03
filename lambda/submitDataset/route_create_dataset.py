@@ -148,7 +148,7 @@ def validate_columns(raw_content):
     return True
 
 
-def parse(raw_input, delimiter="", comment=""):
+def extract(raw_input, delimiter="", comment=""):
     lines = raw_input.split('\n')
     keys = []
     extracted = []
@@ -160,20 +160,21 @@ def parse(raw_input, delimiter="", comment=""):
         cols = line.split(delimiter)
 
         if len(keys) == 0:
-            keys = cols
+            keys = [col.lower().strip().replace(" ", "_") for col in cols]
         else:
             extracted.append(dict(zip(keys, cols)))
 
-    return [keys, extracted]
+    return extracted
 
 
 def parse_file(s3_bucket, s3_key):
+    # Not sure if utf-8 is always suitable
     with sopen(f"s3://{s3_bucket}/{s3_key}", "rb") as f:
         if (s3_key.endswith(".txt")):
-            extracted = parse(f.read().decode("utf-8"), delimiter="\t", comment="#")
+            extracted = extract(f.read().decode("utf-8"), delimiter="\t", comment="#")
 
         elif (s3_key.endswith(".csv")):
-            extracted = parse(f.read().decode("utf-8"), delimiter=",")
+            extracted = extract(f.read().decode("utf-8"), delimiter=",")
 
         else:
             print("Unsupported file type. Only .txt or .csv files are supported. Ensure your file has the correct format.")
