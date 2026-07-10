@@ -7,3 +7,5 @@ from .analysis import Analysis
 from .cohort import Cohort
 from .run import Run
 from .snp import Snp
+from .sample import Sample
+from .genotype import Genotype

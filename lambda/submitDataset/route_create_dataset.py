@@ -8,7 +8,7 @@ import boto3
 import jsons
 from jsonschema import Draft202012Validator, RefResolver
 from shared.apiutils import build_bad_request, bundle_response
-from shared.athena import Snp
+from shared.athena import Snp, Sample, Genotype
 from shared.dynamodb import Dataset as DynamoDataset
 from shared.utils import clear_tmp
 from smart_open import open as sopen
@@ -42,14 +42,14 @@ def submit_dataset(datasets):
             threads.append(Thread(target=Snp.upload_array, args=(parsed_dict,)))
             threads[-1].start()
             completed.append("Added SNP data to ORC")
-        # elif route_type == "genotype":
-        #     threads.append(Thread(target=Genotype.upload_array, args=(parsed_dict,)))
-        #     threads[-1].start()
-        #     completed.append("Added genotype data to ORC")
-        # if route_type == "sample":
-        #     threads.append(Thread(target=Sample.upload_array, args=(parsed_dict,)))
-        #     threads[-1].start()
-        #     completed.append("Added sample data to ORC")
+        elif route_type == "genotype":
+            threads.append(Thread(target=Genotype.upload_array, args=(parsed_dict,)))
+            threads[-1].start()
+            completed.append("Added genotype data to ORC")
+        if route_type == "sample":
+            threads.append(Thread(target=Sample.upload_array, args=(parsed_dict,)))
+            threads[-1].start()
+            completed.append("Added sample data to ORC")
 
 
     print("Awaiting uploads")
@@ -81,6 +81,7 @@ def extract(raw_input, delimiter="", comment=""):
         # Fix column names
         if len(keys) == 0:
             keys = [col.lower().strip().replace(" ", "_") for col in cols]
+            print(f"Found columns: {keys}")
 
         elif len(keys) == len(cols):
             extracted.append(dict(zip(keys, cols)))
@@ -133,7 +134,7 @@ def parse_file(s3_bucket, s3_key, route_type):
     return extracted
 
 
-def route_any(event):
+def route(event, route_type=""):
     # reset progress vars
     global completed, pending
 
@@ -158,61 +159,28 @@ def route_any(event):
     if not s3_bucket:
         return bundle_response(400, {"message": "No bucket specified."})
 
-    # Support mutliple submissions
-    if snp_key := body_dict.get("snp_key"):
-        extracted_outputs.append({"result": parse_file(s3_bucket, snp_key, "snp"), "type": "snp"})
+    if route_type:
+        route_type = route_type.lower().strip()
+        print(route_type)
 
-    if samples_key := body_dict.get("samples_key"):
-        extracted_outputs.append({"result": parse_file(s3_bucket, samples_key, "sample"), "type": "sample"})
+        if route_type not in ["snp", "sample", "genotype"]:
+            return bundle_response(400, {"message": "Invalid parameter. Expected 'snp', 'sample', or 'genotype'."})
+        
+        if s3_key := body_dict.get(f"{route_type}_key"):
+            extracted_outputs.append({"result": parse_file(s3_bucket, s3_key, route_type), "type": route_type})
+        
+    else:
+        
+        # Support mutliple submissions
+        if snp_key := body_dict.get("snp_key"):
+            extracted_outputs.append({"result": parse_file(s3_bucket, snp_key, "snp"), "type": "snp"})
 
-    if genotypes_key := body_dict.get("genotypes_key"):
-        extracted_outputs.append({"result": parse_file(s3_bucket, genotypes_key, "genotype"), "type": "genotype"})
+        if sample_key := body_dict.get("sample_key"):
+            extracted_outputs.append({"result": parse_file(s3_bucket, sample_key, "sample"), "type": "sample"})
 
-    for output in extracted_outputs:
-        if (isinstance(output["result"], dict) and output["result"].get("statusCode") == 400):
-            return output["result"]
-   
-    submit_dataset(extracted_outputs)
-   
-    return bundle_response(200, {"message": "Successfully submitted all data.", "pending": pending, "completed": completed})
+        if genotype_key := body_dict.get("genotype_key"):
+            extracted_outputs.append({"result": parse_file(s3_bucket, genotype_key, "genotype"), "type": "genotype"})
 
-
-def route_single(event, route_type):
-    # reset progress vars
-    global completed, pending
-
-    completed = []
-    pending = []
-    extracted_outputs = []
-
-    event_body = event.get("body")
-
-    if not event_body:
-        return bundle_response(400, {"message": "No body sent with request."})
-
-    try:
-        body_dict = json.loads(event_body)
-    except ValueError:
-        return bundle_response(400, {"message": "No bucket specified."})
-
-    s3_bucket = body_dict.get("s3_bucket")
-
-    if not s3_bucket:
-        return bundle_response(
-            400, {"message": "No bucket specified."}
-        )
-    
-    route_type = route_type.lower().strip()
-    print(route_type)
-
-    if route_type not in ["snp", "sample", "genotype"]:
-        return bundle_response(
-            400, {"message": "Invalid parameter. Expected 'snp', 'sample', or 'genotype'."}
-        )
-    
-    if s3_key := body_dict.get(f"{route_type}_key"):
-        extracted_outputs.append({"result": parse_file(s3_bucket, s3_key, route_type), "type": route_type})
-   
     for output in extracted_outputs:
         if (isinstance(output["result"], dict) and output["result"].get("statusCode") == 400):
             return output["result"]

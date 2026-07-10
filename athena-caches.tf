@@ -682,6 +682,117 @@ resource "aws_glue_catalog_table" "sbeacon-snps-cache" {
 }
 
 # 
+# Samples metadata
+#
+resource "aws_glue_catalog_table" "sbeacon-samples-cache" {
+  name          = "sbeacon_samples_cache"
+  database_name = aws_glue_catalog_database.metadata-database.name
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    EXTERNAL       = "TRUE"
+    "orc.compress" = "SNAPPY"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.metadata-bucket.bucket}/samples-cache"
+    input_format  = "org.apache.hadoop.hive.ql.io.orc.OrcInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat"
+
+
+    ser_de_info {
+      name                  = "ORC"
+      serialization_library = "org.apache.hadoop.hive.ql.io.orc.OrcSerde"
+
+      parameters = {
+        "serialization.format"      = 1,
+        "orc.column.index.access"   = "FALSE"
+        "hive.orc.use-column-names" = "TRUE"
+      }
+    }
+
+    columns {
+      name = "sample_id"
+      type = "string"
+    }
+
+    columns {
+      name = "breed"
+      type = "string"
+    }
+
+    columns {
+      name = "sex"
+      type = "string"
+    }
+  }
+}
+
+# 
+# Genotypes metadata
+#
+resource "aws_glue_catalog_table" "sbeacon-genotypes-cache" {
+  name          = "sbeacon_genotypes_cache"
+  database_name = aws_glue_catalog_database.metadata-database.name
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    EXTERNAL       = "TRUE"
+    "orc.compress" = "SNAPPY"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.metadata-bucket.bucket}/genotypes-cache"
+    input_format  = "org.apache.hadoop.hive.ql.io.orc.OrcInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat"
+
+
+    ser_de_info {
+      name                  = "ORC"
+      serialization_library = "org.apache.hadoop.hive.ql.io.orc.OrcSerde"
+
+      parameters = {
+        "serialization.format"      = 1,
+        "orc.column.index.access"   = "FALSE"
+        "hive.orc.use-column-names" = "TRUE"
+      }
+    }
+
+    columns {
+      name = "id_ref"
+      type = "string"
+    }
+
+    columns {
+      name = "sample_id"
+      type = "string"
+    }
+
+    columns {
+      name = "value"
+      type = "string"
+    }
+
+    columns {
+      name = "score"
+      type = "string"
+    }
+
+    columns {
+      name = "theta"
+      type = "string"
+    }
+
+    columns {
+      name = "b_allele_freq"
+      type = "string"
+    }
+  }
+}
+
+# 
 # Ontology terms cache - used to build proper index later on
 # 
 resource "aws_glue_catalog_table" "sbeacon-terms-cache" {

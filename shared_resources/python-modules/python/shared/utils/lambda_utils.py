@@ -223,6 +223,14 @@ class AthenaEnvironment:
         return os.environ["ATHENA_SNPS_TABLE"]
 
     @property
+    def ATHENA_SAMPLES_TABLE(self):
+        return os.environ["ATHENA_SAMPLES_TABLE"]
+    
+    @property
+    def ATHENA_GENOTYPES_TABLE(self):
+        return os.environ["ATHENA_GENOTYPES_TABLE"]
+    
+    @property
     def ATHENA_TERMS_TABLE(self):
         return os.environ["ATHENA_TERMS_TABLE"]
 
