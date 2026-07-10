@@ -1,12 +1,13 @@
 import json
 from collections import defaultdict
+from datetime import datetime, timezone
 
 import jsons
 import boto3
 import pyorc
 from smart_open import open as sopen
 
-from .common import AthenaModel, extract_terms
+from .common import AthenaModel
 from shared.utils import ENV_ATHENA
 
 
@@ -14,7 +15,7 @@ s3 = boto3.client("s3")
 athena = boto3.client("athena")
 
 
-class SNP(jsons.JsonSerializable, AthenaModel):
+class Snp(jsons.JsonSerializable, AthenaModel):
     _table_name = ENV_ATHENA.ATHENA_SNPS_TABLE
     # for saving to database order matter
     _table_columns = [
@@ -25,11 +26,9 @@ class SNP(jsons.JsonSerializable, AthenaModel):
         "alleleb_top_base"
     ]
     _table_column_types = defaultdict(lambda: "string")
-    _table_column_types["chromosome"] = "int"
-    _table_column_types["coordinate"] = "int"
 
 
-    def __init__(
+    def init(
         self,
         *,
         id="",
@@ -44,8 +43,10 @@ class SNP(jsons.JsonSerializable, AthenaModel):
         self.allelea_top_base = allelea_top_base
         self.alleleb_top_base = alleleb_top_base
 
-    def __eq__(self, other):
+
+    def eq(self, other):
         return self.id == other.id
+
 
     @classmethod
     def upload_array(cls, array):
@@ -57,7 +58,8 @@ class SNP(jsons.JsonSerializable, AthenaModel):
             + ">"
         )
 
-        key = f"{array[0]['id']}-snps"
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        key = f"{timestamp}-snps"
 
         with sopen(
             f"s3://{ENV_ATHENA.ATHENA_METADATA_BUCKET}/snps-cache/{key}", "wb"
@@ -71,11 +73,12 @@ class SNP(jsons.JsonSerializable, AthenaModel):
                 for snp in array:
                     # Writes the current row of data
                     row = tuple(
-                        snp.get(k, "")
-                        for k in [k.strip("_") for k in cls._table_columns]
+                        entry
+                        for entry in [snp[col] for col in cls._table_columns]
                     )
                     writer_entity.write(row)
 
 
-if __name__ == "__main__":
+if __name__ == "main":
     pass
+

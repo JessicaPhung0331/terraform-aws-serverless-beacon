@@ -1,19 +1,23 @@
 import json
 import os
+import re
 from threading import Thread
+
 
 import boto3
 import jsons
 from jsonschema import Draft202012Validator, RefResolver
 from shared.apiutils import build_bad_request, bundle_response
-from shared.athena import Analysis, Biosample, Cohort, Dataset, Individual, Run
+from shared.athena import Snp
 from shared.dynamodb import Dataset as DynamoDataset
 from shared.utils import clear_tmp
 from smart_open import open as sopen
 from util import get_vcf_chromosome_maps
 
+
 DATASETS_TABLE_NAME = os.environ["DYNAMO_DATASETS_TABLE"]
 INDEXER_LAMBDA = os.environ["INDEXER_LAMBDA"]
+
 
 # uncomment below for debugging
 # os.environ['LD_DEBUG'] = 'all'
@@ -26,150 +30,90 @@ completed = []
 pending = []
 
 
-def create_dataset(attributes, vcf_chromosome_maps):
-    datasetId = attributes.get("datasetId", None)
-    cohortId = attributes.get("cohortId", None)
-    index = attributes.get("index", False)
+def submit_dataset(datasets):
     global pending, completed
     threads = []
 
-    if datasetId:
-        json_dataset = attributes.get("dataset", None)
-        if json_dataset:
-            # dataset information
-            item = DynamoDataset(datasetId)
-            item.assemblyId = attributes.get("assemblyId", "UNKNOWN")
-            item.vcfLocations = attributes.get("vcfLocations", [])
-            item.vcfGroups = attributes.get("vcfGroups", [item.vcfLocations])
-            item.vcfChromosomeMap = vcf_chromosome_maps
-            item.save()
-            completed.append("Added dataset info")
+    for dataset in datasets:
+        parsed_dict = dataset["result"]
+        route_type = dataset["type"]
 
-            # dataset metadata entry information
-            json_dataset["id"] = datasetId
-            json_dataset["assemblyId"] = item.assemblyId
-            json_dataset["vcfLocations"] = item.vcfLocations
-            json_dataset["vcfChromosomeMap"] = [
-                vcfm.attribute_values for vcfm in vcf_chromosome_maps
-            ]
-            json_dataset["createDateTime"] = str(item.createDateTime)
-            json_dataset["updateDateTime"] = str(item.updateDateTime)
-            threads.append(Thread(target=Dataset.upload_array, args=([json_dataset],)))
+        if route_type == "snp":
+            threads.append(Thread(target=Snp.upload_array, args=(parsed_dict,)))
             threads[-1].start()
-            completed.append("Added dataset metadata")
+            completed.append("Added SNP data to ORC")
+        # elif route_type == "genotype":
+        #     threads.append(Thread(target=Genotype.upload_array, args=(parsed_dict,)))
+        #     threads[-1].start()
+        #     completed.append("Added genotype data to ORC")
+        # if route_type == "sample":
+        #     threads.append(Thread(target=Sample.upload_array, args=(parsed_dict,)))
+        #     threads[-1].start()
+        #     completed.append("Added sample data to ORC")
 
-    if datasetId and cohortId:
-        print("De-serialising started")
-        individuals = attributes.get("individuals", [])
-        biosamples = attributes.get("biosamples", [])
-        runs = attributes.get("runs", [])
-        analyses = attributes.get("analyses", [])
-        print("De-serialising complete")
-
-        # setting dataset id
-        # for example _vcfSampleId is mapped to vcfSampleId
-        # skip _ in private variables
-        # they are handled in the upload function
-        for individual in individuals:
-            individual["datasetId"] = datasetId
-            individual["cohortId"] = cohortId
-
-        for biosample in biosamples:
-            biosample["datasetId"] = datasetId
-            biosample["cohortId"] = cohortId
-
-        for run in runs:
-            run["datasetId"] = datasetId
-            run["cohortId"] = cohortId
-
-        for analysis in analyses:
-            analysis["datasetId"] = datasetId
-            analysis["cohortId"] = cohortId
-
-        # upload to s3
-        if len(individuals) > 0:
-            threads.append(Thread(target=Individual.upload_array, args=(individuals,)))
-            threads[-1].start()
-            completed.append("Added individuals")
-
-        if len(biosamples) > 0:
-            threads.append(Thread(target=Biosample.upload_array, args=(biosamples,)))
-            threads[-1].start()
-            completed.append("Added biosamples")
-
-        if len(runs) > 0:
-            threads.append(Thread(target=Run.upload_array, args=(runs,)))
-            threads[-1].start()
-            completed.append("Added runs")
-
-        if len(analyses) > 0:
-            threads.append(Thread(target=Analysis.upload_array, args=(analyses,)))
-            threads[-1].start()
-            completed.append("Added analyses")
-
-    if cohortId:
-        # cohort information
-        json_cohort = attributes.get("cohort", None)
-        if json_cohort:
-            json_cohort["cohortSize"] = len(attributes.get("individuals", []))
-            json_cohort["id"] = cohortId
-            # Cohort.upload_array([cohort])
-            threads.append(Thread(target=Cohort.upload_array, args=([json_cohort],)))
-            threads[-1].start()
-            completed.append("Added cohorts")
 
     print("Awaiting uploads")
     [thread.join() for thread in threads]
     print("Upload finished")
 
-    if index:
-        aws_lambda.invoke(
-            FunctionName=INDEXER_LAMBDA,
-            InvocationType="Event",
-            Payload=jsons.dumps(dict()),
-        )
-        pending.append("Running indexer")
 
-
-def submit_dataset(body_dict):
-    global pending, completed
-    pending = []
-    completed = []
-
-    return bundle_response(
-        200,
-        {
-            "message": "Received dataset submission request"
-        },
-    )
-
-
-def validate_columns(raw_content):
-    return True
+    # if index:
+    #     aws_lambda.invoke(
+    #         FunctionName=INDEXER_LAMBDA,
+    #         InvocationType="Event",
+    #         Payload=jsons.dumps(dict()),
+    #     )
+    #     pending.append("Running indexer")
 
 
 def extract(raw_input, delimiter="", comment=""):
-    lines = raw_input.split('\n')
+    unix_text = re.sub(r'\r', '', raw_input)
+    lines = unix_text.split('\n')
     keys = []
     extracted = []
 
     for line in lines:
-        if line.startswith(comment):
+        if not line or (comment and line.startswith(comment)):
             continue
 
         cols = line.split(delimiter)
 
+        # Fix column names
         if len(keys) == 0:
             keys = [col.lower().strip().replace(" ", "_") for col in cols]
-        else:
+
+        elif len(keys) == len(cols):
             extracted.append(dict(zip(keys, cols)))
+
+        else:
+            print("Warning: line may be incorrect")
+            print(line)
+        
+    print("Successfully read file into dict")
 
     return extracted
 
+def check_file_exists(s3_bucket, s3_key):
+    try:
+        s3.head_object(Bucket=s3_bucket, Key=s3_key)
+        print("File found successfully")
+        return True
+    except s3.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] in {"404", "NoSuchKey"}:
+            return False
 
-def parse_file(s3_bucket, s3_key):
+
+def parse_file(s3_bucket, s3_key, route_type):
+    print(f"Received bucket {s3_bucket}, key {s3_key}, type {route_type}")
+   
+    if not check_file_exists(s3_bucket, s3_key):
+        return bundle_response(
+            400, {"message": f"File does not exist on S3. Check your bucket and/or key. Key: {s3_key}"}
+        )
+   
     # Not sure if utf-8 is always suitable
     with sopen(f"s3://{s3_bucket}/{s3_key}", "rb") as f:
+        print(f"Opening file: {s3_key}")
         if (s3_key.endswith(".txt")):
             extracted = extract(f.read().decode("utf-8"), delimiter="\t", comment="#")
 
@@ -177,68 +121,105 @@ def parse_file(s3_bucket, s3_key):
             extracted = extract(f.read().decode("utf-8"), delimiter=",")
 
         else:
-            print("Unsupported file type. Only .txt or .csv files are supported. Ensure your file has the correct format.")
-            return
-        
-    print(extracted)
-
+            return bundle_response(
+                400, {"message": f"Unsupported file type. Only .txt or .csv files are supported. Ensure your file has the correct suffix and format. File: {s3_key}"}
+            )
+       
+        if not extracted:
+            return bundle_response(
+                400, {"message": f"Error while parsing file. Check that columns are consistent. File: {s3_key}"}
+            )
+   
     return extracted
 
 
-def check_file_exists(s3_bucket, s3_key):
-    try:
-        s3.head_object(Bucket=s3_bucket, Key=s3_key)
-        print("File found successfully")
-
-        return True
-    except s3.exceptions.ClientError as e:
-        if e.response["Error"]["Code"] in {"404", "NoSuchKey"}:
-            return False
-
-
-def route(event):
+def route_any(event):
     # reset progress vars
     global completed, pending
 
     completed = []
     pending = []
+    extracted_outputs = []
 
     event_body = event.get("body")
 
     if not event_body:
         return bundle_response(400, {"message": "No body sent with request."})
+
     try:
         body_dict = json.loads(event_body)
-
-        if s3_bucket := body_dict.get("s3_bucket"):
-            print("Received S3 bucket")
-
-        if s3_key := body_dict.get("s3_key"):
-            print("Received S3 key")
     except ValueError:
         return bundle_response(
             400, {"message": "Error parsing request body, Expected JSON."}
         )
     
-    # Validate file exists on S3
-    if not check_file_exists(s3_bucket, s3_key):
+    s3_bucket = body_dict.get("s3_bucket")
+
+    if not s3_bucket:
+        return bundle_response(400, {"message": "No bucket specified."})
+
+    # Support mutliple submissions
+    if snp_key := body_dict.get("snp_key"):
+        extracted_outputs.append({"result": parse_file(s3_bucket, snp_key, "snp"), "type": "snp"})
+
+    if samples_key := body_dict.get("samples_key"):
+        extracted_outputs.append({"result": parse_file(s3_bucket, samples_key, "sample"), "type": "sample"})
+
+    if genotypes_key := body_dict.get("genotypes_key"):
+        extracted_outputs.append({"result": parse_file(s3_bucket, genotypes_key, "genotype"), "type": "genotype"})
+
+    for output in extracted_outputs:
+        if (isinstance(output["result"], dict) and output["result"].get("statusCode") == 400):
+            return output["result"]
+   
+    submit_dataset(extracted_outputs)
+   
+    return bundle_response(200, {"message": "Successfully submitted all data.", "pending": pending, "completed": completed})
+
+
+def route_single(event, route_type):
+    # reset progress vars
+    global completed, pending
+
+    completed = []
+    pending = []
+    extracted_outputs = []
+
+    event_body = event.get("body")
+
+    if not event_body:
+        return bundle_response(400, {"message": "No body sent with request."})
+
+    try:
+        body_dict = json.loads(event_body)
+    except ValueError:
+        return bundle_response(400, {"message": "No bucket specified."})
+
+    s3_bucket = body_dict.get("s3_bucket")
+
+    if not s3_bucket:
         return bundle_response(
-            400, {"message": "File does not exist on S3. Check your bucket and/or key."}
+            400, {"message": "No bucket specified."}
         )
     
-    # Validate File Structure (Correct Columns)
-    # call func
+    route_type = route_type.lower().strip()
+    print(route_type)
 
-    if not (extracted_file := parse_file(s3_bucket, s3_key)):
+    if route_type not in ["snp", "sample", "genotype"]:
         return bundle_response(
-            400, {"message": "Error while parsing file. Check that columns are consistent."}
+            400, {"message": "Invalid parameter. Expected 'snp', 'sample', or 'genotype'."}
         )
-
-    # TODO Determine which file is being submitted
-
-    result = submit_dataset(extracted_file)
-    clear_tmp()
-    return result
+    
+    if s3_key := body_dict.get(f"{route_type}_key"):
+        extracted_outputs.append({"result": parse_file(s3_bucket, s3_key, route_type), "type": route_type})
+   
+    for output in extracted_outputs:
+        if (isinstance(output["result"], dict) and output["result"].get("statusCode") == 400):
+            return output["result"]
+   
+    submit_dataset(extracted_outputs)
+   
+    return bundle_response(200, {"message": "Successfully submitted all data.", "pending": pending, "completed": completed})
 
 
 if __name__ == "__main__":
