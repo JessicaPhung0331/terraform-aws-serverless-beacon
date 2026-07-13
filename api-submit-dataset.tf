@@ -33,28 +33,28 @@ resource "aws_api_gateway_method_response" "submit-dataset_post" {
 # 
 # Update dataset /submit-dataset/{id}
 # 
-resource "aws_api_gateway_resource" "submit-dataset-id" {
-  path_part   = "{id}"
+resource "aws_api_gateway_resource" "submit-dataset-type" {
+  path_part   = "{type}"
   parent_id   = aws_api_gateway_resource.submit-dataset.id
   rest_api_id = aws_api_gateway_rest_api.BeaconApi.id
 }
 
-resource "aws_api_gateway_method" "submit-dataset-id_post" {
+resource "aws_api_gateway_method" "submit-dataset-type_post" {
   rest_api_id   = aws_api_gateway_rest_api.BeaconApi.id
-  resource_id   = aws_api_gateway_resource.submit-dataset-id.id
+  resource_id   = aws_api_gateway_resource.submit-dataset-type.id
   http_method   = "POST"
   authorization = var.beacon-enable-auth ? "COGNITO_USER_POOLS" : "NONE"
   authorizer_id = var.beacon-enable-auth ? aws_api_gateway_authorizer.BeaconUserPool-authorizer.id : null
 
   request_parameters = {
-    "method.request.path.id" = true
+    "method.request.path.type" = true
   }
 }
 
-resource "aws_api_gateway_method_response" "submit-dataset-id_post" {
-  rest_api_id = aws_api_gateway_method.submit-dataset-id_post.rest_api_id
-  resource_id = aws_api_gateway_method.submit-dataset-id_post.resource_id
-  http_method = aws_api_gateway_method.submit-dataset-id_post.http_method
+resource "aws_api_gateway_method_response" "submit-dataset-type_post" {
+  rest_api_id = aws_api_gateway_method.submit-dataset-type_post.rest_api_id
+  resource_id = aws_api_gateway_method.submit-dataset-type_post.resource_id
+  http_method = aws_api_gateway_method.submit-dataset-type_post.http_method
   status_code = "200"
 
   response_parameters = {
@@ -75,12 +75,12 @@ module "cors-submit-dataset" {
   api_resource_id = aws_api_gateway_resource.submit-dataset.id
 }
 
-module "cors-submit-dataset-id" {
+module "cors-submit-dataset-type" {
   source  = "squidfunk/api-gateway-enable-cors/aws"
   version = "0.3.3"
 
   api_id          = aws_api_gateway_rest_api.BeaconApi.id
-  api_resource_id = aws_api_gateway_resource.submit-dataset-id.id
+  api_resource_id = aws_api_gateway_resource.submit-dataset-type.id
 }
 
 # wire up lambda submit-dataset
@@ -106,26 +106,26 @@ resource "aws_api_gateway_integration_response" "submit-dataset_post" {
   depends_on = [aws_api_gateway_integration.submit-dataset_post]
 }
 
-resource "aws_api_gateway_integration" "submit-dataset-id_post" {
+resource "aws_api_gateway_integration" "submit-dataset-type_post" {
   rest_api_id             = aws_api_gateway_rest_api.BeaconApi.id
-  resource_id             = aws_api_gateway_resource.submit-dataset-id.id
-  http_method             = aws_api_gateway_method.submit-dataset-id_post.http_method
+  resource_id             = aws_api_gateway_resource.submit-dataset-type.id
+  http_method             = aws_api_gateway_method.submit-dataset-type_post.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = module.lambda-submitDataset.lambda_function_invoke_arn
 }
 
-resource "aws_api_gateway_integration_response" "submit-dataset-id_post" {
-  rest_api_id = aws_api_gateway_method.submit-dataset-id_post.rest_api_id
-  resource_id = aws_api_gateway_method.submit-dataset-id_post.resource_id
-  http_method = aws_api_gateway_method.submit-dataset-id_post.http_method
-  status_code = aws_api_gateway_method_response.submit-dataset-id_post.status_code
+resource "aws_api_gateway_integration_response" "submit-dataset-type_post" {
+  rest_api_id = aws_api_gateway_method.submit-dataset-type_post.rest_api_id
+  resource_id = aws_api_gateway_method.submit-dataset-type_post.resource_id
+  http_method = aws_api_gateway_method.submit-dataset-type_post.http_method
+  status_code = aws_api_gateway_method_response.submit-dataset-type_post.status_code
 
   response_templates = {
     "application/json" = ""
   }
 
-  depends_on = [aws_api_gateway_integration.submit-dataset-id_post]
+  depends_on = [aws_api_gateway_integration.submit-dataset-type_post]
 }
 
 # permit lambda invokation

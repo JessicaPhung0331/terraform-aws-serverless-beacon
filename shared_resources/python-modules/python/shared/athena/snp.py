@@ -1,0 +1,84 @@
+import json
+from collections import defaultdict
+from datetime import datetime, timezone
+
+import jsons
+import boto3
+import pyorc
+from smart_open import open as sopen
+
+from .common import AthenaModel
+from shared.utils import ENV_ATHENA
+
+
+s3 = boto3.client("s3")
+athena = boto3.client("athena")
+
+
+class Snp(jsons.JsonSerializable, AthenaModel):
+    _table_name = ENV_ATHENA.ATHENA_SNPS_TABLE
+    # for saving to database order matter
+    _table_columns = [
+        "id",
+        "chromosome",
+        "coordinate",
+        "allelea_top_base",
+        "alleleb_top_base"
+    ]
+    _table_column_types = defaultdict(lambda: "string")
+
+
+    def init(
+        self,
+        *,
+        id="",
+        chromosome="",
+        coordinate="",
+        allelea_top_base="",
+        alleleb_top_base="",
+    ):
+        self.id = id
+        self.chromosome = chromosome
+        self.coordinate = coordinate
+        self.allelea_top_base = allelea_top_base
+        self.alleleb_top_base = alleleb_top_base
+
+
+    def eq(self, other):
+        return self.id == other.id
+
+
+    @classmethod
+    def upload_array(cls, array):
+        if len(array) == 0:
+            return
+        header_entity = (
+            "struct<"
+            + ",".join([f"{col.lower()}:{cls._table_column_types[col]}" for col in cls._table_columns])
+            + ">"
+        )
+
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        key = f"{timestamp}-snps"
+
+        with sopen(
+            f"s3://{ENV_ATHENA.ATHENA_METADATA_BUCKET}/snps-cache/{key}", "wb"
+        ) as s3file_entity:
+            with pyorc.Writer(
+                s3file_entity,
+                header_entity,
+                compression=pyorc.CompressionKind.SNAPPY,
+                compression_strategy=pyorc.CompressionStrategy.COMPRESSION,
+            ) as writer_entity:
+                for snp in array:
+                    # Writes the current row of data
+                    row = tuple(
+                        entry
+                        for entry in [snp[col] for col in cls._table_columns]
+                    )
+                    writer_entity.write(row)
+
+
+if __name__ == "main":
+    pass
+
