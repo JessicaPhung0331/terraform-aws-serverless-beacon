@@ -12,7 +12,7 @@ from shared.athena import Snp, Sample, Genotype
 from shared.dynamodb import Dataset as DynamoDataset
 from shared.utils import clear_tmp
 from smart_open import open as sopen
-from util import get_vcf_chromosome_maps
+from util import get_vcf_chromosome_maps, validate_file
 
 
 DATASETS_TABLE_NAME = os.environ["DYNAMO_DATASETS_TABLE"]
@@ -129,6 +129,13 @@ def parse_file(s3_bucket, s3_key, route_type):
         if not extracted:
             return bundle_response(
                 400, {"message": f"Error while parsing file. Check that columns are consistent. File: {s3_key}"}
+            )
+        
+        validation_error = validate_file(route_type, extracted)
+
+        if validation_error:
+            return bundle_response(
+                400, {"message": f"Error while validating {s3_key}. {validation_error}"}
             )
    
     return extracted
