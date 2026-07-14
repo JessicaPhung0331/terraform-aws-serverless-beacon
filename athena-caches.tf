@@ -655,6 +655,11 @@ resource "aws_glue_catalog_table" "sbeacon-snps-cache" {
     }
 
     columns {
+      name = "dataset_id"
+      type = "string"
+    }
+
+    columns {
       name = "id"
       type = "string"
     }
@@ -713,6 +718,11 @@ resource "aws_glue_catalog_table" "sbeacon-samples-cache" {
     }
 
     columns {
+      name = "dataset_id"
+      type = "string"
+    }
+
+    columns {
       name = "sample_id"
       type = "string"
     }
@@ -758,6 +768,11 @@ resource "aws_glue_catalog_table" "sbeacon-genotypes-cache" {
         "orc.column.index.access"   = "FALSE"
         "hive.orc.use-column-names" = "TRUE"
       }
+    }
+
+    columns {
+      name = "dataset_id"
+      type = "string"
     }
 
     columns {

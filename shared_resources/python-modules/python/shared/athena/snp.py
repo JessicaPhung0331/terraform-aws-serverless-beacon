@@ -1,6 +1,5 @@
 import json
 from collections import defaultdict
-from datetime import datetime, timezone
 
 import jsons
 import boto3
@@ -19,6 +18,7 @@ class Snp(jsons.JsonSerializable, AthenaModel):
     _table_name = ENV_ATHENA.ATHENA_SNPS_TABLE
     # for saving to database order matter
     _table_columns = [
+        "dataset_id",
         "id",
         "chromosome",
         "coordinate",
@@ -31,12 +31,14 @@ class Snp(jsons.JsonSerializable, AthenaModel):
     def init(
         self,
         *,
+        dataset_id="",
         id="",
         chromosome="",
         coordinate="",
         allelea_top_base="",
         alleleb_top_base="",
     ):
+        self.dataset_id = dataset_id
         self.id = id
         self.chromosome = chromosome
         self.coordinate = coordinate
@@ -58,8 +60,7 @@ class Snp(jsons.JsonSerializable, AthenaModel):
             + ">"
         )
 
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        key = f"{timestamp}-snps"
+        key = f"{array[0]["dataset_id"]}-snps"
 
         with sopen(
             f"s3://{ENV_ATHENA.ATHENA_METADATA_BUCKET}/snps-cache/{key}", "wb"
