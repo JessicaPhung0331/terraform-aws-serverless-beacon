@@ -67,7 +67,7 @@ class Genotype(jsons.JsonSerializable, AthenaModel):
         key = f"{array[0]["dataset_id"]}-{array[0]["sample_id"]}-genotypes"
 
         with sopen(
-            f"s3://{ENV_ATHENA.ATHENA_METADATA_BUCKET}/genotypes-cache/{key}", "wb"
+            f"s3://{ENV_ATHENA.ATHENA_METADATA_BUCKET}/genotypes/{key}", "wb"
         ) as s3file_entity:
             with pyorc.Writer(
                 s3file_entity,

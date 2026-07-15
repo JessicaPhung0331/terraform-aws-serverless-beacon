@@ -83,18 +83,10 @@ def perform_variant_search(
         # Build Athena SQL query
         sql = snp_query(reference_name, start_min, start_max, end_min, end_max, reference_bases, alternate_bases, include_samples)
 
-        print(f"Executing Athena query for {query_id}")
-
-
-        # Execute Athena query and save copy of outputs
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        key = f"{timestamp}-query"
-
 
         response = athena.start_query_execution(
             QueryString=sql,
             QueryExecutionContext={"Database": ENV_ATHENA.ATHENA_METADATA_DATABASE},
-            ResultConfiguration={"OutputLocation": f"ATHENA_OUTPUT_LOCATION/{key}"},
             WorkGroup=ENV_ATHENA.ATHENA_WORKGROUP,
         )
 
@@ -120,7 +112,16 @@ def perform_variant_search(
                     QueryExecutionId=response["QueryExecutionId"], MaxResults=1000
                 )
 
-            return data["ResultSet"]["Rows"]
+            rows = data["ResultSet"]["Rows"]
+
+            ids = [
+                row["Data"][0]["VarCharValue"]
+                for row in rows[1:]      # Skip header row
+            ]
+
+            print(ids)
+
+            return ids
 
 
     except Exception as e:

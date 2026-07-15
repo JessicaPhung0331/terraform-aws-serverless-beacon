@@ -14,17 +14,25 @@ from .genotype import Genotype
 from .sample import Sample
 from .snp import Snp
 
-type_class = {
-    "genotype": Genotype,
-    "sample": Sample,
-    "snp": Snp,
+table_request_params = {
+    "sample_id": Genotype,
+    "value": Genotype,
+    "score": Genotype,
+    "theta": Genotype,
+    "b_allele_freq": Genotype,
+    "breed": Sample,
+    "sex": Sample,
+    "id": Snp,
+    "chromosome": Snp,
+    "coordinate": Snp,
+    "allelea_top_base": Snp,
+    "alleleb_top_base": Snp,
 }
-type_relations_table_id = {
-    "genotype": "sample_id",
-    "sample": "sample_id",
-    "snp": "id",
+type_table_id = {
+    "genotypes": "sample_id",
+    "samples": "sample_id",
+    "snps": "id",
 }
-
 
 # given a dict <f>={"operator":X,"value":Y} return appropriate SQL fragment "<operator> <value>"
 def _get_comparison_operator(filter: Union[AlphanumericFilter, OntologyFilter]):
@@ -51,29 +59,30 @@ def entity_search_conditions(
     outer_execution_parameters = []
     filter_samples = []
 
+    # TODO check what the aim of this request is; if it means that we are 100% looking for an individual record
     if request is not None and request.query.request_parameters is not None:
         g_variant = request.query.request_parameters
 
-        query_responses = perform_variant_search(
+        print("Performing initial query")
+        query_response = perform_variant_search(
             reference_name=g_variant.reference_name,
             reference_bases=g_variant.reference_bases,
             alternate_bases=g_variant.alternate_bases,
             start=g_variant.start,
             end=g_variant.end,
-            requested_granularity=Granularity.RECORD,
             include_datasets=request.query.include_resultset_responses,
             include_samples=True,
         )
 
-        sample_names_relevant_to_variant = set()
-        for query_response in query_responses:
-            sample_names_relevant_to_variant.update(query_response.sample_names)
 
-        filter_samples = list(sample_names_relevant_to_variant)
+        if query_response:
+            sample_names_relevant_to_variant = set()
+            sample_names_relevant_to_variant.update(query_response)
+            filter_samples = list(sample_names_relevant_to_variant)
 
-        if filter_samples:
+            print(f"Found matching samples: {filter_samples}")
+
             # Everything is joined by the sample id (unique), so we don't need an explicit relations table
-            # This is only needed if we are looking for an individual at some point
             values = ", ".join(["(?)" for _ in filter_samples])
 
             join_constraints.append(
@@ -95,24 +104,29 @@ def entity_search_conditions(
                 operator = _get_comparison_operator(f)
                 outer_constraints.append("{} {} ?".format(filter_id, operator))
                 outer_execution_parameters.append(f"'{str(f.value)}'")
-            # otherwise, we have to use the relations table
-            # eg: scope = "cohorts", cohortType = "beacon-defined"
+            
             else:
                 group = f.scope
-                joined_class = type_class[group]
                 filter_id = f.id.strip().replace(" ", "")
+
+                if group not in type_table_id or filter_id not in table_request_params:
+                    continue
 
                 operator = _get_comparison_operator(f)
                 comparison = "{} {} ?".format(filter_id, operator)
                 join_execution_parameters.append(f"'{str(f.value)}'")
+
+                table_id_col = type_table_id[group]
+                target_table = table_request_params[filter_id]
+
                 join_constraints.append(
-                    f""" SELECT RI.{type_relations_table_id[id_type]} FROM "{ENV_ATHENA.ATHENA_RELATIONS_TABLE}" RI JOIN "{joined_class._table_name}" TN ON RI.{type_relations_table_id[group]}=TN.id WHERE TN.{comparison} """
+                    f""" SELECT {table_id_col} FROM "{target_table._table_name}" T WHERE {comparison} """
                 )
 
     # format fragments together to form coherent SQL expression
     join_constraints = " INTERSECT ".join(join_constraints)
     join_constraints = (
-        f"{id_modifier} IN ({join_constraints}) " if join_constraints else ""
+        f"{type_table_id[id_type]} IN ({join_constraints}) " if join_constraints else ""
     )
     total_constraints = (
         [join_constraints] if join_constraints else []
