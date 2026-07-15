@@ -12,8 +12,8 @@ from shared.athena import Snp, Sample, Genotype
 from shared.dynamodb import Dataset as DynamoDataset
 from shared.utils import clear_tmp
 from smart_open import open as sopen
-from util import get_vcf_chromosome_maps, validate_file
-
+from util import get_vcf_chromosome_maps
+from file_validator import validate_file
 
 DATASETS_TABLE_NAME = os.environ["DYNAMO_DATASETS_TABLE"]
 INDEXER_LAMBDA = os.environ["INDEXER_LAMBDA"]
