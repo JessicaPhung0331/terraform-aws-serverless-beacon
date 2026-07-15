@@ -58,7 +58,7 @@ class Sample(jsons.JsonSerializable, AthenaModel):
         key = f"{array[0]["dataset_id"]}-samples"
 
         with sopen(
-            f"s3://{ENV_ATHENA.ATHENA_METADATA_BUCKET}/samples-cache/{key}", "wb"
+            f"s3://{ENV_ATHENA.ATHENA_METADATA_BUCKET}/samples/{key}", "wb"
         ) as s3file_entity:
             with pyorc.Writer(
                 s3file_entity,
