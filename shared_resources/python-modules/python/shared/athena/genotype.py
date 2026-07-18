@@ -19,6 +19,7 @@ class Genotype(jsons.JsonSerializable, AthenaModel):
     _table_name = ENV_ATHENA.ATHENA_GENOTYPES_TABLE
     # for saving to database order matter
     _table_columns = [
+        "dataset_id",
         "id_ref",
         "sample_id",
         "value",
@@ -32,6 +33,7 @@ class Genotype(jsons.JsonSerializable, AthenaModel):
     def init(
         self,
         *,
+        dataset_id="",
         id_ref="",
         sample_id="",
         value="",
@@ -39,6 +41,7 @@ class Genotype(jsons.JsonSerializable, AthenaModel):
         theta="",
         b_allele_freq=""
     ):
+        self.dataset_id = dataset_id
         self.id_ref = id_ref
         self.sample_id = sample_id
         self.value = value
@@ -61,11 +64,10 @@ class Genotype(jsons.JsonSerializable, AthenaModel):
             + ">"
         )
 
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        key = f"{timestamp}-samples"
+        key = f"{array[0]["dataset_id"]}-{array[0]["sample_id"]}-genotypes"
 
         with sopen(
-            f"s3://{ENV_ATHENA.ATHENA_METADATA_BUCKET}genotypes-cache/{key}", "wb"
+            f"s3://{ENV_ATHENA.ATHENA_METADATA_BUCKET}/genotypes/{key}", "wb"
         ) as s3file_entity:
             with pyorc.Writer(
                 s3file_entity,

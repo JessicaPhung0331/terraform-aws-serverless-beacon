@@ -171,54 +171,6 @@ class AthenaEnvironment:
         return os.environ["ATHENA_METADATA_BUCKET"]
 
     @property
-    def ATHENA_DATASETS_TABLE(self):
-        return os.environ["ATHENA_DATASETS_TABLE"]
-
-    @property
-    def ATHENA_DATASETS_CACHE_TABLE(self):
-        return os.environ["ATHENA_DATASETS_CACHE_TABLE"]
-
-    @property
-    def ATHENA_COHORTS_TABLE(self):
-        return os.environ["ATHENA_COHORTS_TABLE"]
-
-    @property
-    def ATHENA_COHORTS_CACHE_TABLE(self):
-        return os.environ["ATHENA_COHORTS_CACHE_TABLE"]
-
-    @property
-    def ATHENA_INDIVIDUALS_TABLE(self):
-        return os.environ["ATHENA_INDIVIDUALS_TABLE"]
-
-    @property
-    def ATHENA_INDIVIDUALS_CACHE_TABLE(self):
-        return os.environ["ATHENA_INDIVIDUALS_CACHE_TABLE"]
-
-    @property
-    def ATHENA_BIOSAMPLES_TABLE(self):
-        return os.environ["ATHENA_BIOSAMPLES_TABLE"]
-
-    @property
-    def ATHENA_BIOSAMPLES_CACHE_TABLE(self):
-        return os.environ["ATHENA_BIOSAMPLES_CACHE_TABLE"]
-
-    @property
-    def ATHENA_RUNS_TABLE(self):
-        return os.environ["ATHENA_RUNS_TABLE"]
-
-    @property
-    def ATHENA_RUNS_CACHE_TABLE(self):
-        return os.environ["ATHENA_RUNS_CACHE_TABLE"]
-
-    @property
-    def ATHENA_ANALYSES_TABLE(self):
-        return os.environ["ATHENA_ANALYSES_TABLE"]
-
-    @property
-    def ATHENA_ANALYSES_CACHE_TABLE(self):
-        return os.environ["ATHENA_ANALYSES_CACHE_TABLE"]
-
-    @property
     def ATHENA_SNPS_TABLE(self):
         return os.environ["ATHENA_SNPS_TABLE"]
 

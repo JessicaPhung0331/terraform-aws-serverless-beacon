@@ -31,16 +31,11 @@ class AthenaModel:
     @classmethod
     def get_by_query(cls, query, /, *, queue=None, execution_parameters=None):
         query = query.format(database=ENV_ATHENA.ATHENA_METADATA_DATABASE, table=cls._table_name)
-        exec_id = run_custom_query(
-            query, queue=None, return_id=True, execution_parameters=execution_parameters
+        results = run_custom_query(
+            query, queue=None, return_id=False, execution_parameters=execution_parameters
         )
 
-        if exec_id:
-            if queue is None:
-                return cls.parse_array(exec_id)
-            else:
-                queue.put(cls.parse_array(exec_id))
-        return []
+        return results
 
     @classmethod
     def get_existence_by_query(cls, query, /, *, queue=None, execution_parameters=None):
