@@ -27,14 +27,12 @@ SAMPLE_ID = ["sample", "genotype"]
 
 def validate_file(route_type, rows):
     """ Validate that the contents of a given file (rows) match expected format of given route_type"""
-    errors = []
-    errors.append(validate_req_cols(route_type, rows))
-    errors.append(validate_rows(route_type, rows))
 
-    if errors := [e for e in errors if e]:
-        return ", ".join(errors)
+    col_error = validate_req_cols(route_type, rows)
+    if col_error:
+        return col_error
 
-    return None
+    return validate_rows(route_type, rows)
 
 
 def validate_req_cols(route_type, rows):
@@ -46,6 +44,7 @@ def validate_req_cols(route_type, rows):
     missing_cols = req_cols - set(rows[0].keys())
 
     if missing_cols:
+        print("Validation errors - missing columns: ", ', '.join(missing_cols))
         return f"Missing required columns: {', '.join(missing_cols)}"
     
     return None
@@ -63,9 +62,13 @@ def validate_rows(route_type, rows):
     
     if route_type == "genotype":
         if any(row.get("value") not in ["AA", "AB", "BB", "NC"] for row in rows):
-            errors.append("Invalid genotype value in one or more rows. Expected 'AA', 'AB', 'BB', or 'NC'.")
+            errors.append("Invalid genotype value in one or more rows (expected 'AA', 'AB', 'BB', or 'NC').")
+
+    if errors:
+        print("Validation errors - invalid rows: ", " ".join(errors))
+        return " ".join(errors)
     
-    return ", ".join(errors) if errors else None
+    return None
 
 
 if __name__ == "__main__":
@@ -81,4 +84,3 @@ if __name__ == "__main__":
     # ]
 
     # print(validate_file("genotype", genotype_rows))
-

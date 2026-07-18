@@ -51,7 +51,6 @@ def submit_dataset(datasets):
             threads[-1].start()
             completed.append("Added sample data to ORC")
 
-
     print("Awaiting uploads")
     [thread.join() for thread in threads]
     print("Upload finished")
@@ -130,7 +129,7 @@ def parse_file(s3_bucket, s3_key, route_type):
             return bundle_response(
                 400, {"message": f"Error while parsing file. Check that columns are consistent. File: {s3_key}"}
             )
-        
+
         validation_error = validate_file(route_type, extracted)
 
         if validation_error:
