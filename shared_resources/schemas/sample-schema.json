@@ -38,7 +38,7 @@
         "dataset_id",
         "sample_id",
         "breed",
-        "sex,"
+        "sex"
     ],
     "title": "Sample",
     "type": "object"
