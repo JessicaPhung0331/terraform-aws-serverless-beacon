@@ -46,7 +46,7 @@ def validate_req_cols(route_type, rows):
     if missing_cols:
         missing_cols = list(missing_cols)
         print(f"Validation errors - missing columns: {missing_cols}")
-        return f"Missing required columns: {missing_cols}"
+        return f"Missing required columns: {sorted(missing_cols)}"
     
     return None
 
@@ -66,8 +66,8 @@ def validate_rows(route_type, rows):
             errors.append("Invalid genotype value in one or more rows (expected 'AA', 'AB', 'BB', or 'NC').")
 
     if errors:
-        print(f"Validation errors - invalid rows: {errors}")
-        return f"Validation errors - invalid rows: {errors}"
+        print(f"Validation errors - invalid rows: {' '.join(errors)}")
+        return f"Validation errors - invalid rows: {' '.join(errors)}"
     
     return None
 
