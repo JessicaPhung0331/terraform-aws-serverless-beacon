@@ -70,18 +70,3 @@ def validate_rows(route_type, rows):
         return f"Validation errors - invalid rows: {' '.join(errors)}"
     
     return None
-
-
-if __name__ == "__main__":
-    pass
-
-    # # Test validate_rows - should fail (invalid genotype call)
-    # genotype_rows = [
-    #     {
-    #         "id_ref": "rs123",
-    #         "sample_id": "S1",
-    #         "value": "AS",
-    #     }
-    # ]
-
-    # print(validate_file("genotype", genotype_rows))
