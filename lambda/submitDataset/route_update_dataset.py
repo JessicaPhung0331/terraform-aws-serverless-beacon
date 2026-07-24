@@ -6,7 +6,7 @@ from threading import Thread
 
 import boto3
 from shared.apiutils import build_bad_request, bundle_response
-from shared.athena import Snp, Sample, Genotype
+from shared.athena import Snp, Sample, Genotype, Phenotype
 from shared.dynamodb import Dataset as DynamoDataset
 from smart_open import open as sopen
 from file_validator import validate_file
@@ -47,6 +47,10 @@ def submit_dataset(datasets):
             threads.append(Thread(target=Sample.upload_array, args=(parsed_dict,)))
             threads[-1].start()
             completed.append("Updated samples ORC file")
+        if route_type == "phenotype":
+            threads.append(Thread(target=Phenotype.upload_array, args=(parsed_dict,)))
+            threads[-1].start()
+            completed.append("Updated phenotype ORC file")
 
 
     print("Awaiting uploads")
@@ -152,7 +156,7 @@ def route(event, dataset_id):
 
     # at least one file must be submitted
     if not extracted_outputs:
-        return bundle_response(400, {"message": "At least one of snp_key, sample_key, or genotype_keys must be provided."})
+        return bundle_response(400, {"message": "At least one of snp_key, sample_key, genotype_keys or phenotype_keys must be provided."})
 
     errors = []
     correct_outputs = []
