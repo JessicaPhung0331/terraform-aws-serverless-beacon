@@ -302,6 +302,68 @@ data "aws_iam_policy_document" "lambda-getSamples" {
 }
 
 #
+# getPhenotypes Lambda Function
+#
+data "aws_iam_policy_document" "lambda-getPhenotypes" {
+  statement {
+    actions = [
+      "dynamodb:Query",
+    ]
+    resources = [
+      "${aws_dynamodb_table.datasets.arn}/index/*",
+      "${aws_dynamodb_table.variant_query_responses.arn}/index/*"
+    ]
+  }
+
+  statement {
+    actions = [
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem",
+    ]
+    resources = [
+      aws_dynamodb_table.variant_queries.arn,
+    ]
+  }
+
+  statement {
+    actions = [
+      "dynamodb:DescribeTable",
+      "dynamodb:GetItem",
+      "dynamodb:BatchGetItem"
+    ]
+    resources = [
+      aws_dynamodb_table.datasets.arn,
+      aws_dynamodb_table.variant_queries.arn,
+      aws_dynamodb_table.variant_query_responses.arn
+    ]
+  }
+
+  statement {
+    actions = [
+      "s3:GetObject",
+      "s3:ListBucket",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    actions = [
+      "lambda:InvokeFunction",
+    ]
+    resources = [module.lambda-splitQuery.lambda_function_arn]
+  }
+
+  statement {
+    actions = [
+      "SNS:Publish",
+    ]
+    resources = [
+      aws_sns_topic.splitQuery.arn,
+    ]
+  }
+}
+
+#
 # analytics Lambda Function
 #
 data "aws_iam_policy_document" "lambda-analytics" {

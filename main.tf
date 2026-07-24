@@ -393,6 +393,42 @@ module "lambda-getSamples" {
 }
 
 #
+# getPhenotypes Lambda Function
+#
+module "lambda-getPhenotypes" {
+  source = "terraform-aws-modules/lambda/aws"
+
+  function_name       = "getPhenotypes"
+  description         = "Get the Phenotypes."
+  runtime             = "python3.12"
+  handler             = "lambda_function.lambda_handler"
+  memory_size         = 1769
+  timeout             = 60
+  attach_policy_jsons = true
+  policy_jsons = [
+    data.aws_iam_policy_document.lambda-getPhenotypes.json,
+    data.aws_iam_policy_document.athena-full-access.json,
+    data.aws_iam_policy_document.dynamodb-onto-access.json
+  ]
+  number_of_policy_jsons = 3
+  source_path            = "${path.module}/lambda/getPhenotypes"
+
+  tags = var.common-tags
+
+  environment_variables = merge(
+    local.variant_variables,
+    local.athena_variables,
+    local.sbeacon_variables,
+    local.dynamodb_variables
+  )
+
+  layers = [
+    local.python_libraries_layer,
+    local.python_modules_layer
+  ]
+}
+
+#
 # splitQuery Lambda Function
 #
 module "lambda-splitQuery" {

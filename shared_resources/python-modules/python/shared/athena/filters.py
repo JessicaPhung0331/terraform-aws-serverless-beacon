@@ -13,6 +13,7 @@ from shared.apiutils import RequestParams, Granularity
 from .genotype import Genotype
 from .sample import Sample
 from .snp import Snp
+from .phenotype import Phenotype
 
 table_request_params = {
     "sample_id": Genotype,
@@ -27,11 +28,23 @@ table_request_params = {
     "coordinate": Snp,
     "allelea_top_base": Snp,
     "alleleb_top_base": Snp,
+    "birth_weight_kg": Phenotype,
+    "weaing_weight_kg": Phenotype,
+    "six_month_weight_kg": Phenotype,
+    "fat_thickness_cm": Phenotype,
+    "eye_muscle_area_cm2": Phenotype,
+    "height_at_withers_cm": Phenotype,
+    "chest_girth_cm": Phenotype,
+    "shin_circumference_cm": Phenotype,
+    "pre_weaning_gain_kg": Phenotype,
+    "post_weaning_gain_kg": Phenotype,
+    "daily_weight_gain_kg": Phenotype
 }
 type_table_id = {
     "genotypes": "sample_id",
     "samples": "sample_id",
     "snps": "id",
+    "phenotypes": "sample_id"
 }
 
 # given a dict <f>={"operator":X,"value":Y} return appropriate SQL fragment "<operator> <value>"
