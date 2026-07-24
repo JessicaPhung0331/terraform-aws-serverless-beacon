@@ -7,7 +7,7 @@ from threading import Thread
 
 import boto3
 from shared.apiutils import build_bad_request, bundle_response
-from shared.athena import Snp, Sample, Genotype
+from shared.athena import Snp, Sample, Genotype, Phenotype
 from shared.dynamodb import Dataset as DynamoDataset
 from smart_open import open as sopen
 from file_validator import validate_file
@@ -47,6 +47,10 @@ def submit_dataset(datasets):
             threads.append(Thread(target=Sample.upload_array, args=(parsed_dict,)))
             threads[-1].start()
             completed.append("Added samples ORC file")
+        if route_type == "phenotype":
+            threads.append(Thread(target=Phenotype.upload_array, args=(parsed_dict,)))
+            threads[-1].start()
+            completed.append("Added phenotype ORC file")
 
     print("Awaiting uploads")
     [thread.join() for thread in threads]
@@ -136,7 +140,7 @@ def route(event, route_type=""):
     dataset_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=12)
 )
         
-    # All files are required to establish the database
+    # SNP, sample and genotype files are required to establish the database
     snp_key = body_dict.get("snp_key")
     sample_key = body_dict.get("sample_key")
     genotype_keys = body_dict.get("genotype_keys")
@@ -149,9 +153,14 @@ def route(event, route_type=""):
     for genotype_key in genotype_keys:
         extracted_outputs.append({"result": parse_file(s3_bucket, genotype_key, dataset_id, "genotype"), "type": "genotype"})
 
+    # Phenotype files are optional
+    if phenotype_keys := body_dict.get("phenotype_keys"):
+        for phenotype_key in phenotype_keys:
+            extracted_outputs.append({"result": parse_file(s3_bucket, phenotype_key, dataset_id, "phenotype"), "type": "phenotype"})
+
     errors = []
 
-    # All files must be valid to establish the dataset
+    # All uploaded files must be valid to establish the dataset
     for output in extracted_outputs:
         if (isinstance(output["result"], dict)):
             errors.append(output["result"])

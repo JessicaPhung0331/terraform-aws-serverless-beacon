@@ -66,6 +66,7 @@ locals {
     ATHENA_SNPS_TABLE              = aws_glue_catalog_table.sbeacon-snps.name
     ATHENA_SAMPLES_TABLE           = aws_glue_catalog_table.sbeacon-samples.name
     ATHENA_GENOTYPES_TABLE         = aws_glue_catalog_table.sbeacon-genotypes.name
+    ATHENA_PHENOTYPES_TABLE        = aws_glue_catalog_table.sbeacon-phenotypes.name
 
 
   }

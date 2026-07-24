@@ -16,14 +16,14 @@ REQUIRED_COLUMNS = {
         "id_ref",
         "value",
         "sample_id"
+    },
+    "phenotype": {
+        "sample_id"
     }
-    # Todo: "phenotypes": {
-    #     "sample_name"
-    # }
 }
 
 SNP_ID = ["snp", "genotype"]
-SAMPLE_ID = ["sample", "genotype"]
+SAMPLE_ID = ["sample", "genotype", "phenotype"]
 
 def validate_file(route_type, rows):
     """ Validate that the contents of a given file (rows) match expected format of given route_type"""

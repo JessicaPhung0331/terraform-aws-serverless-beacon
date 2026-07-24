@@ -181,7 +181,11 @@ class AthenaEnvironment:
     @property
     def ATHENA_GENOTYPES_TABLE(self):
         return os.environ["ATHENA_GENOTYPES_TABLE"]
-    
+
+    @property
+    def ATHENA_PHENOTYPES_TABLE(self):
+        return os.environ["ATHENA_PHENOTYPES_TABLE"]
+
     @property
     def ATHENA_TERMS_TABLE(self):
         return os.environ["ATHENA_TERMS_TABLE"]

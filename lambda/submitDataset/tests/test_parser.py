@@ -67,9 +67,19 @@ def test_extract_snp_txt():
         },
     ]
 
+def test_extract_phenotype():
+    raw = "sample_id,sex,birth_weight_kg\nmerino1,male,3\nmerino2,female,2"
+
+    rows = extract(raw, "phenotype1", delimiter=",")
+
+    assert rows == [
+        {"dataset_id": "phenotype1", "sample_id": "merino1", "sex": "male", "birth_weight_kg": "3"},
+        {"dataset_id": "phenotype1", "sample_id": "merino2", "sex": "female", "birth_weight_kg": "2"},
+    ]
+
 if __name__ == "__main__":
 
-    tests = [test_extract_sample, test_extract_genotype_txt, test_extract_snp_txt]
+    tests = [test_extract_sample, test_extract_genotype_txt, test_extract_snp_txt, test_extract_phenotype]
 
     for test in tests:
         try:

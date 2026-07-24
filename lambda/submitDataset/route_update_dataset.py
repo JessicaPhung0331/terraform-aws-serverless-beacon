@@ -10,6 +10,7 @@ from shared.athena import Snp, Sample, Genotype
 from shared.dynamodb import Dataset as DynamoDataset
 from smart_open import open as sopen
 from file_validator import validate_file
+from parser import extract
 
 DATASETS_TABLE_NAME = os.environ["DYNAMO_DATASETS_TABLE"]
 INDEXER_LAMBDA = os.environ["INDEXER_LAMBDA"]
@@ -61,37 +62,6 @@ def submit_dataset(datasets):
     #     )
     #     pending.append("Running indexer")
 
-
-def extract(raw_input, dataset_id, delimiter="", comment=""):
-    unix_text = re.sub(r'\r', '', raw_input)
-    lines = unix_text.split('\n')
-    keys = []
-    extracted = []
-
-    for line in lines:
-        if not line or (comment and line.startswith(comment)):
-            continue
-
-        cols = line.split(delimiter)
-
-        # Fix column names
-        if len(keys) == 0:
-            keys = [col.lower().strip().replace(" ", "_") for col in cols]
-            print(f"Found columns: {keys}")
-
-        elif len(keys) == len(cols):
-            entry = {}
-            entry["dataset_id"] = dataset_id
-            entry.update(dict(zip(keys, cols)))
-            extracted.append(entry)
-
-        else:
-            print("Warning: line may be incorrect")
-            print(line)
-        
-    print("Successfully read file into dict")
-
-    return extracted
 
 def check_file_exists(s3_bucket, s3_key):
     try:
@@ -175,6 +145,10 @@ def route(event, dataset_id):
     if genotype_keys := body_dict.get("genotype_keys"):
         for genotype_key in genotype_keys:
             extracted_outputs.append({"result": parse_file(s3_bucket, genotype_key, dataset_id, "genotype"), "type": "genotype"})
+
+    if phenotype_keys := body_dict.get("phenotype_keys"):
+        for phenotype_key in phenotype_keys:
+            extracted_outputs.append({"result": parse_file(s3_bucket, phenotype_key, dataset_id, "phenotype"), "type": "phenotype"})
 
     # at least one file must be submitted
     if not extracted_outputs:

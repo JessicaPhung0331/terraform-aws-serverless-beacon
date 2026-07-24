@@ -195,6 +195,109 @@ resource "aws_glue_catalog_table" "sbeacon-genotypes" {
 }
 
 # 
+# Phenotypes metadata
+#
+resource "aws_glue_catalog_table" "sbeacon-phenotypes" {
+  name          = "sbeacon_phenotypes"
+  database_name = aws_glue_catalog_database.metadata-database.name
+
+  table_type = "EXTERNAL_TABLE"
+
+  parameters = {
+    EXTERNAL       = "TRUE"
+    "orc.compress" = "SNAPPY"
+  }
+
+  storage_descriptor {
+    location      = "s3://${aws_s3_bucket.metadata-bucket.bucket}/phenotypes"
+    input_format  = "org.apache.hadoop.hive.ql.io.orc.OrcInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat"
+
+
+    ser_de_info {
+      name                  = "ORC"
+      serialization_library = "org.apache.hadoop.hive.ql.io.orc.OrcSerde"
+
+      parameters = {
+        "serialization.format"      = 1,
+        "orc.column.index.access"   = "FALSE"
+        "hive.orc.use-column-names" = "TRUE"
+      }
+    }
+
+    columns {
+      name = "dataset_id"
+      type = "string"
+    }
+
+    columns {
+      name = "sample_id"
+      type = "string"
+    }
+
+    columns {
+      name = "sex"
+      type = "string"
+    }
+
+    columns {
+      name = "birth_weight_kg"
+      type = "string"
+    }
+
+    columns {
+      name = "weaing_weight_kg"
+      type = "string"
+    }
+
+    columns {
+      name = "six_month_weight_kg"
+      type = "string"
+    }
+
+    columns {
+      name = "fat_thickness_cm"
+      type = "string"
+    }
+
+    columns {
+      name = "eye_muscle_area_cm2"
+      type = "string"
+    }
+
+    columns {
+      name = "height_at_withers_cm"
+      type = "string"
+    }
+
+    columns {
+      name = "chest_girth_cm"
+      type = "string"
+    }
+
+    columns {
+      name = "shin_circumference_cm"
+      type = "string"
+    }
+
+    columns {
+      name = "pre_weaning_gain_kg"
+      type = "string"
+    }
+
+    columns {
+      name = "post_weaning_gain_kg"
+      type = "string"
+    }
+
+    columns {
+      name = "daily_weight_gain_kg"
+      type = "string"
+    }
+  } 
+}
+
+# 
 # Connected entities
 # 
 resource "aws_glue_catalog_table" "sbeacon-relations" {

@@ -14,7 +14,8 @@ def extract(raw_input, dataset_id, delimiter="", comment=""):
 
         # Fix column names
         if len(keys) == 0:
-            keys = [col.lower().strip().replace(" ", "_") for col in cols]
+            keys = [col.lower().strip().replace(" ", "_").replace("-", "_") for col in cols]
+            keys = ["sample_id" if key == "sample_name" else key for key in keys]
             print(f"Found columns: {keys}")
 
         elif len(keys) == len(cols):
